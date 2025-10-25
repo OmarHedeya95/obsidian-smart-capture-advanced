@@ -22,16 +22,18 @@
       "preferences": [
         {
           "name": "openInBackground",
-          "title": "Capture in Background",
+          "label": "Capture in Background",
           "description": "Do not bring Obsidian to front when capturing",
           "type": "checkbox",
+          "required": false,
           "default": true
         },
         {
           "name": "openInNewTab",
-          "title": "Open in New Tab",
+          "label": "Open in New Tab",
           "description": "Open captured notes in a new tab within Obsidian",
           "type": "checkbox",
+          "required": false,
           "default": true
         }
       ]
