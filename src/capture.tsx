@@ -107,9 +107,9 @@ export default function Capture() {
       const target =
         `obsidian://advanced-uri?` +
         (shouldAppend ? "mode=append&" : "") +
-        `vault=${encodeURIComponent(vault)}&filepath=${encodeURIComponent(path)}/${encodeURIComponent(fileName)}&data=${encodeURIComponent(
-          formatData(content, link, highlight, includePageContents, includeSummary)
-        )}` +
+        `vault=${encodeURIComponent(vault)}&filepath=${encodeURIComponent(path)}/${encodeURIComponent(
+          fileName
+        )}&data=${encodeURIComponent(formatData(content, link, highlight, includePageContents, includeSummary))}` +
         (shouldAppend ? "&openmode=silent" : newTabParam);
 
       await openObsidianURI(target);

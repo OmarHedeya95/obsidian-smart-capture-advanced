@@ -50,7 +50,9 @@ class NoteCreator {
       const pref = getPreferenceValues<{ openInNewTab?: boolean }>();
       const newTabParam = pref.openInNewTab ? "&openmode=tab" : "";
       const target =
-        "obsidian://open?path=" + encodeURIComponent(path.join(this.vaultPath, this.noteProps.path, name + ".md")) + newTabParam;
+        "obsidian://open?path=" +
+        encodeURIComponent(path.join(this.vaultPath, this.noteProps.path, name + ".md")) +
+        newTabParam;
       if (saved) {
         setTimeout(async () => {
           await openObsidianURI(target);
