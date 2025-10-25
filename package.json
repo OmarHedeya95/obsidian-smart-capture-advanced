@@ -18,7 +18,16 @@
       "name": "capture",
       "title": "Obsidian Smart Capture",
       "description": "Capture whats on your screen into obsidian",
-      "mode": "view"
+      "mode": "view",
+      "preferences": [
+        {
+          "name": "openInBackground",
+          "title": "Capture in Background",
+          "description": "Do not bring Obsidian to front when capturing",
+          "type": "checkbox",
+          "default": true
+        }
+      ]
     }
   ],
   "dependencies": {

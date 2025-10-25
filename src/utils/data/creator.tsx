@@ -51,7 +51,7 @@ class NoteCreator {
         "obsidian://open?path=" + encodeURIComponent(path.join(this.vaultPath, this.noteProps.path, name + ".md"));
       if (saved) {
         setTimeout(async () => {
-          await openObsidianURI(target, { background: true });
+          await openObsidianURI(target);
         }, 200);
       }
     }

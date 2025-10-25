@@ -81,7 +81,7 @@ export default function Capture() {
       )}/${encodeURIComponent(fileName)}&data=${encodeURIComponent(
         formatData(content, link, highlight, includePageContents, includeSummary)
       )}`;
-      await openObsidianURI(target, { background: true });
+      await openObsidianURI(target);
       popToRoot();
       closeMainWindow();
       showHUD("Note Captured", { clearRootSearch: true });
@@ -101,7 +101,7 @@ export default function Capture() {
     )}/${encodeURIComponent(fileName)}&data=${encodeURIComponent(
       formatData(content, link, highlight, includePageContents, includeSummary)
     )}`;
-    await openObsidianURI(target, { background: true });
+    await openObsidianURI(target);
     popToRoot();
     showHUD("Note Captured", { clearRootSearch: true });
   }

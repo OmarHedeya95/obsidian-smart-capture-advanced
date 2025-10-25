@@ -640,9 +640,15 @@ export const NotesContext = createContext([] as Note[]);
 export const NotesDispatchContext = createContext((() => {}) as (action: NoteReducerAction) => void);
 
 export async function openObsidianURI(uri: string, options?: { hidden?: boolean; background?: boolean }) {
-  const flag = options?.hidden ? "-j" : "-g";
+  const pref = getPreferenceValues<{ openInBackground?: boolean }>();
+  const useBackground = options?.background ?? pref.openInBackground ?? true;
+  const flag = options?.hidden ? "-j" : useBackground ? "-g" : "";
   try {
-    await runAppleScript(`do shell script "open ${flag} " & quoted form of "${uri}"`);
+    if (flag) {
+      await runAppleScript(`do shell script "open ${flag} " & quoted form of "${uri}"`);
+    } else {
+      await runAppleScript(`do shell script "open " & quoted form of "${uri}"`);
+    }
   } catch {
     // Fallback to default behavior if AppleScript fails
     await raycastOpen(uri);
