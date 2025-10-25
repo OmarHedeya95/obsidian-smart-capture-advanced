@@ -10,7 +10,6 @@ import {
   Icon,
   List,
   LocalStorage,
-  open,
   popToRoot,
   showHUD,
   showToast,
@@ -27,6 +26,7 @@ import { GET_ACTIVE_APP_SCRIPT, GET_LINK_FROM_BROWSER_SCRIPT, SUPPORTED_BROWSERS
 import { SUMMARY_PROMPT } from "./utils/constants";
 
 import { urlToMarkdown, useObsidianVaults, vaultPluginCheck, openObsidianURI } from "./utils/utils";
+import { getPreferenceValues } from "@raycast/api";
 
 export default function Capture() {
   const canAccessAI = environment.canAccess(AI);
@@ -76,11 +76,14 @@ export default function Capture() {
       if (vault) await LocalStorage.setItem("vault", vault);
       if (path) await LocalStorage.setItem("path", path);
 
+      const pref = getPreferenceValues<{ openInNewTab?: boolean }>();
+      const newTabParam = pref.openInNewTab ? "&openmode=tab" : "";
+
       const target = `obsidian://advanced-uri?vault=${encodeURIComponent(vault)}&filepath=${encodeURIComponent(
         path
       )}/${encodeURIComponent(fileName)}&data=${encodeURIComponent(
         formatData(content, link, highlight, includePageContents, includeSummary)
-      )}`;
+      )}${newTabParam}`;
       await openObsidianURI(target);
       popToRoot();
       closeMainWindow();
@@ -91,19 +94,6 @@ export default function Capture() {
         title: "Failed to capture. Try again",
       });
     }
-
-    // Save vault and path to local storage
-    await LocalStorage.setItem("vault", vault);
-    await LocalStorage.setItem("path", path);
-
-    const target = `obsidian://advanced-uri?vault=${encodeURIComponent(vault)}&filepath=${encodeURIComponent(
-      path
-    )}/${encodeURIComponent(fileName)}&data=${encodeURIComponent(
-      formatData(content, link, highlight, includePageContents, includeSummary)
-    )}`;
-    await openObsidianURI(target);
-    popToRoot();
-    showHUD("Note Captured", { clearRootSearch: true });
   }
 
   const [selectedText, setSelectedText] = useState<string>("");
