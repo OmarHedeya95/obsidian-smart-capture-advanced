@@ -6,6 +6,7 @@ import { FormValue, Vault } from "../interfaces";
 import { applyTemplates } from "../utils";
 import { directoryCreationErrorToast, fileWriteErrorToast } from "../../components/Toasts";
 import { NoteFormPreferences } from "../preferences";
+import { openObsidianURI } from "../utils";
 
 class NoteCreator {
   vaultPath: string;
@@ -49,8 +50,8 @@ class NoteCreator {
       const target =
         "obsidian://open?path=" + encodeURIComponent(path.join(this.vaultPath, this.noteProps.path, name + ".md"));
       if (saved) {
-        setTimeout(() => {
-          open(target);
+        setTimeout(async () => {
+          await openObsidianURI(target, { background: true });
         }, 200);
       }
     }

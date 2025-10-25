@@ -26,7 +26,7 @@ import { NoVaultFoundMessage } from "./components/Notifications/NoVaultFoundMess
 import { GET_ACTIVE_APP_SCRIPT, GET_LINK_FROM_BROWSER_SCRIPT, SUPPORTED_BROWSERS } from "./scripts/browser";
 import { SUMMARY_PROMPT } from "./utils/constants";
 
-import { urlToMarkdown, useObsidianVaults, vaultPluginCheck } from "./utils/utils";
+import { urlToMarkdown, useObsidianVaults, vaultPluginCheck, openObsidianURI } from "./utils/utils";
 
 export default function Capture() {
   const canAccessAI = environment.canAccess(AI);
@@ -81,7 +81,7 @@ export default function Capture() {
       )}/${encodeURIComponent(fileName)}&data=${encodeURIComponent(
         formatData(content, link, highlight, includePageContents, includeSummary)
       )}`;
-      open(target);
+      await openObsidianURI(target, { background: true });
       popToRoot();
       closeMainWindow();
       showHUD("Note Captured", { clearRootSearch: true });
@@ -101,7 +101,7 @@ export default function Capture() {
     )}/${encodeURIComponent(fileName)}&data=${encodeURIComponent(
       formatData(content, link, highlight, includePageContents, includeSummary)
     )}`;
-    open(target);
+    await openObsidianURI(target, { background: true });
     popToRoot();
     showHUD("Note Captured", { clearRootSearch: true });
   }
