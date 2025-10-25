@@ -49,28 +49,46 @@ export default function Capture() {
 
   const formatData = (
     content?: string,
-    link?: string,
-    highlight?: string,
+    link?: string | string[],
+    highlight?: boolean,
     includePageContents = false,
     includeSummary = false
   ) => {
-    const data = [];
-    if (content) {
-      data.push(content);
+    const sections: string[] = [];
+
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, "0");
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const yy = String(now.getFullYear()).slice(-2);
+    const HH = String(now.getHours()).padStart(2, "0");
+    const MM = String(now.getMinutes()).padStart(2, "0");
+    const SS = String(now.getSeconds()).padStart(2, "0");
+
+    sections.push(`## ${dd}/${mm}/${yy}: ${HH}:${MM}:${SS}`);
+
+    if (highlight && selectedText) {
+      sections.push(`> [!quote] Quote\n${selectedText}`);
     }
-    if (link) {
-      data.push(`[${resourceInfo}](${link})`);
+
+    if (content && content.trim().length > 0) {
+      sections.push(`> [!note] Note\n${content}`);
     }
-    if (highlight) {
-      data.push(`> ${selectedText}`);
+
+    const url = Array.isArray(link) ? link[0] : link;
+    if (url) {
+      const linkText = resourceInfo || url;
+      sections.push(`Source: [${linkText}](${url})`);
     }
-    if (includeSummary) {
-      data.push(`---\n\n${summary}\n\n---`);
+
+    if (includeSummary && summary) {
+      sections.push(`---\n\n${summary}\n\n---`);
     }
-    if (includePageContents) {
-      data.push(pageContent);
+
+    if (includePageContents && pageContent) {
+      sections.push(pageContent);
     }
-    return data.join("\n\n");
+
+    return sections.join("\n\n");
   };
 
   async function createNewNote({ fileName, content, link, vault, path, highlight }: Form.Values) {
