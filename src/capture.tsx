@@ -10,7 +10,6 @@ import {
   Icon,
   List,
   LocalStorage,
-  open,
   popToRoot,
   showHUD,
   showToast,
@@ -27,6 +26,8 @@ import { GET_ACTIVE_APP_SCRIPT, GET_LINK_FROM_BROWSER_SCRIPT, SUPPORTED_BROWSERS
 import { SUMMARY_PROMPT } from "./utils/constants";
 
 import { urlToMarkdown, useObsidianVaults, vaultPluginCheck, openObsidianURI } from "./utils/utils";
+import fs from "fs";
+import { default as pathModule } from "path";
 
 export default function Capture() {
   const canAccessAI = environment.canAccess(AI);
@@ -76,15 +77,24 @@ export default function Capture() {
       if (vault) await LocalStorage.setItem("vault", vault);
       if (path) await LocalStorage.setItem("path", path);
 
-      const target = `obsidian://advanced-uri?vault=${encodeURIComponent(vault)}&filepath=${encodeURIComponent(
-        path
-      )}/${encodeURIComponent(fileName)}&data=${encodeURIComponent(
-        formatData(content, link, highlight, includePageContents, includeSummary)
-      )}`;
+      const vaultObj = allVaults.find((v) => v.name === vault);
+      const relativeFile = `${path}/${fileName}`;
+      const absoluteFile = vaultObj ? pathModule.join(vaultObj.path, `${relativeFile}.md`) : undefined;
+      const shouldAppend = absoluteFile ? fs.existsSync(absoluteFile) : false;
+
+      const target =
+        `obsidian://advanced-uri?` +
+        (shouldAppend ? "mode=append&" : "") +
+        `vault=${encodeURIComponent(vault)}&filepath=${encodeURIComponent(path)}/${encodeURIComponent(fileName)}&data=${encodeURIComponent(
+          formatData(content, link, highlight, includePageContents, includeSummary)
+        )}` +
+        (shouldAppend ? "&openmode=silent" : "");
+
       await openObsidianURI(target, { background: true });
       popToRoot();
       closeMainWindow();
       showHUD("Note Captured", { clearRootSearch: true });
+      return;
     } catch (e) {
       showToast({
         style: Toast.Style.Failure,
@@ -92,16 +102,16 @@ export default function Capture() {
       });
     }
 
-    // Save vault and path to local storage
+    // Fallback path if we reach here
     await LocalStorage.setItem("vault", vault);
     await LocalStorage.setItem("path", path);
 
-    const target = `obsidian://advanced-uri?vault=${encodeURIComponent(vault)}&filepath=${encodeURIComponent(
+    const fallbackTarget = `obsidian://advanced-uri?vault=${encodeURIComponent(vault)}&filepath=${encodeURIComponent(
       path
     )}/${encodeURIComponent(fileName)}&data=${encodeURIComponent(
       formatData(content, link, highlight, includePageContents, includeSummary)
     )}`;
-    await openObsidianURI(target, { background: true });
+    await openObsidianURI(fallbackTarget, { background: true });
     popToRoot();
     showHUD("Note Captured", { clearRootSearch: true });
   }
