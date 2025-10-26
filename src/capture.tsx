@@ -29,6 +29,8 @@ import { urlToMarkdown, useObsidianVaults, vaultPluginCheck, openObsidianURI } f
 import fs from "fs";
 import { default as pathModule } from "path";
 import { getPreferenceValues } from "@raycast/api";
+import { getNotesFromCache } from "./utils/data/cache";
+import { Note, Vault } from "./utils/interfaces";
 
 export default function Capture() {
   const canAccessAI = environment.canAccess(AI);
@@ -38,14 +40,64 @@ export default function Capture() {
   const [defaultVault, setDefaultVault] = useState<string | undefined>(undefined);
   const [defaultPath, setDefaultPath] = useState<string | undefined>(undefined);
 
-  LocalStorage.getItem("vault").then((savedVault) => {
-    if (savedVault) setDefaultVault(savedVault.toString());
-  });
+  // Controlled form state
+  const [selectedVaultName, setSelectedVaultName] = useState<string | undefined>(undefined);
+  const [storagePath, setStoragePath] = useState<string>("");
+  const [fileName, setFileName] = useState<string>("");
+  const [matches, setMatches] = useState<Note[]>([]);
 
-  LocalStorage.getItem("path").then((savedPath) => {
-    if (savedPath) setDefaultPath(savedPath.toString());
-    else setDefaultPath("inbox");
-  });
+  useEffect(() => {
+    // Initialize defaults from LocalStorage once
+    LocalStorage.getItem("vault").then((savedVault) => {
+      if (savedVault) setDefaultVault(savedVault.toString());
+    });
+    LocalStorage.getItem("path").then((savedPath) => {
+      if (savedPath) setDefaultPath(savedPath.toString());
+      else setDefaultPath("inbox");
+    });
+  }, []);
+
+  // Initialize controlled vault and path once ready/defaults are known
+  useEffect(() => {
+    if (!ready || vaultsWithPlugin.length === 0) return;
+    const desired = defaultVault ?? vaultsWithPlugin[0].name;
+    if (!selectedVaultName && desired) {
+      setSelectedVaultName(desired);
+    }
+  }, [ready, defaultVault, vaultsWithPlugin.length, selectedVaultName]);
+
+  useEffect(() => {
+    if (defaultPath !== undefined && storagePath === "") {
+      setStoragePath(defaultPath);
+    }
+  }, [defaultPath, storagePath]);
+
+  // Compute title-only suggestions for existing notes
+  useEffect(() => {
+    if (!ready || !fileName || fileName.trim().length < 2 || !selectedVaultName) {
+      setMatches([]);
+      return;
+    }
+    const vaultObj = vaultsWithPlugin.find((v) => v.name === selectedVaultName);
+    if (!vaultObj) {
+      setMatches([]);
+      return;
+    }
+    const notes = getNotesFromCache(vaultObj);
+    const lower = fileName.toLowerCase();
+    // If/when we add Fuse.js, replace the filter below with Fuse scoring on note.title only
+    const filtered = notes.filter((n: Note) => n.title.toLowerCase().includes(lower));
+    const ranked = filtered
+      .sort((a, b) => {
+        const ia = a.title.toLowerCase().indexOf(lower);
+        const ib = b.title.toLowerCase().indexOf(lower);
+        if (ia !== ib) return ia - ib;
+        if (a.title.length !== b.title.length) return a.title.length - b.title.length;
+        return a.title.localeCompare(b.title);
+      })
+      .slice(0, 10);
+    setMatches(ranked);
+  }, [ready, fileName, selectedVaultName]);
 
   const formatData = (
     content?: string,
@@ -97,7 +149,8 @@ export default function Capture() {
       if (path) await LocalStorage.setItem("path", path);
 
       const vaultObj = allVaults.find((v) => v.name === vault);
-      const relativeFile = `${path}/${fileName}`;
+      const safePath = path && path.trim().length > 0 ? path : undefined;
+      const relativeFile = safePath ? `${safePath}/${fileName}` : `${fileName}`;
       const absoluteFile = vaultObj ? pathModule.join(vaultObj.path, `${relativeFile}.md`) : undefined;
       const shouldAppend = absoluteFile ? fs.existsSync(absoluteFile) : false;
 
@@ -107,9 +160,11 @@ export default function Capture() {
       const target =
         `obsidian://advanced-uri?` +
         (shouldAppend ? "mode=append&" : "") +
-        `vault=${encodeURIComponent(vault)}&filepath=${encodeURIComponent(path)}/${encodeURIComponent(
-          fileName
-        )}&data=${encodeURIComponent(formatData(content, link, highlight, includePageContents, includeSummary))}` +
+        `vault=${encodeURIComponent(vault)}&filepath=${
+          safePath
+            ? `${encodeURIComponent(path)}/${encodeURIComponent(fileName)}`
+            : encodeURIComponent(fileName)
+        }&data=${encodeURIComponent(formatData(content, link, highlight, includePageContents, includeSummary))}` +
         (shouldAppend ? "&openmode=silent" : newTabParam);
 
       await openObsidianURI(target);
@@ -131,9 +186,11 @@ export default function Capture() {
     const pref = getPreferenceValues<{ openInNewTab?: boolean }>();
     const newTabParam = pref.openInNewTab ? "&openmode=tab" : "";
 
-    const fallbackTarget = `obsidian://advanced-uri?vault=${encodeURIComponent(vault)}&filepath=${encodeURIComponent(
-      path
-    )}/${encodeURIComponent(fileName)}&data=${encodeURIComponent(
+    const fallbackTarget = `obsidian://advanced-uri?vault=${encodeURIComponent(vault)}&filepath=${
+      path && path.trim().length > 0
+        ? `${encodeURIComponent(path)}/${encodeURIComponent(fileName)}`
+        : encodeURIComponent(fileName)
+    }&data=${encodeURIComponent(
       formatData(content, link, highlight, includePageContents, includeSummary)
     )}${newTabParam}`;
     await openObsidianURI(fallbackTarget);
@@ -268,6 +325,8 @@ export default function Capture() {
                 setResourceInfo("");
                 setSelectedResource("");
                 setSelectedText("");
+                setFileName("");
+                setMatches([]);
                 showToast({
                   style: Toast.Style.Success,
                   title: "Capture Cleared",
@@ -278,7 +337,7 @@ export default function Capture() {
         }
       >
         {ready && vaultsWithPlugin.length >= 1 && (
-          <Form.Dropdown id="vault" title="Vault" defaultValue={defaultVault}>
+          <Form.Dropdown id="vault" title="Vault" value={selectedVaultName} onChange={setSelectedVaultName}>
             {vaultsWithPlugin.map((vault) => (
               <Form.Dropdown.Item key={vault.key} value={vault.name} title={vault.name} icon="🧳" />
             ))}
@@ -288,12 +347,48 @@ export default function Capture() {
           <Form.TextField
             id="path"
             title="Storage Path"
-            defaultValue={defaultPath}
+            value={storagePath}
+            onChange={setStoragePath}
             info="Path where newly captured notes will be saved"
           />
         )}
 
-        <Form.TextField title="Title" id="fileName" placeholder="Title for the resource" autoFocus />
+        <Form.TextField
+          title="Title"
+          id="fileName"
+          placeholder="Title for the resource"
+          value={fileName}
+          onChange={setFileName}
+          autoFocus
+        />
+
+        {matches.length > 0 && fileName.trim().length >= 2 && (
+          <Form.Dropdown
+            id="matches"
+            title="Matches"
+            storeValue={false}
+            onChange={(selectedPath) => {
+              const vaultObj: Vault | undefined = vaultsWithPlugin.find((v) => v.name === (selectedVaultName ?? ""));
+              if (!vaultObj) return;
+              const note = matches.find((m) => m.path === selectedPath);
+              if (!note) return;
+              const relative = note.path.split(vaultObj.path)[1]?.replace(/^\//, "") || "";
+              const parts = relative.split("/");
+              const base = (parts.pop() || "").replace(/\.md$/i, "");
+              const dir = parts.join("/");
+              setFileName(base);
+              setStoragePath(dir);
+            }}
+          >
+            {matches.map((m) => {
+              const vaultObj: Vault | undefined = vaultsWithPlugin.find((v) => v.name === (selectedVaultName ?? ""));
+              const subtitle = vaultObj ? m.path.split(vaultObj.path)[1]?.replace(/^\//, "") : undefined;
+              return (
+                <Form.Dropdown.Item key={m.path} value={m.path} title={m.title} subtitle={subtitle} />
+              );
+            })}
+          </Form.Dropdown>
+        )}
 
         {selectedText && (
           <Form.Checkbox
