@@ -45,7 +45,6 @@ export default function Capture() {
   const [storagePath, setStoragePath] = useState<string>("");
   const [fileName, setFileName] = useState<string>("");
   const [matches, setMatches] = useState<Note[]>([]);
-  const [selectedMatchPath, setSelectedMatchPath] = useState<string>("");
 
   useEffect(() => {
     // Initialize defaults from LocalStorage once
@@ -89,7 +88,7 @@ export default function Capture() {
     // If/when we add Fuse.js, replace the filter below with Fuse scoring on note.title only
     const filtered = notes.filter((n: Note) => n.title.toLowerCase().includes(lower));
     const ranked = filtered
-      .sort((a, b) => {
+      .sort((a: Note, b: Note) => {
         const ia = a.title.toLowerCase().indexOf(lower);
         const ib = b.title.toLowerCase().indexOf(lower);
         if (ia !== ib) return ia - ib;
@@ -341,10 +340,9 @@ export default function Capture() {
           <Form.Dropdown
             id="vault"
             title="Vault"
-            value={selectedVaultName ?? ""}
+            value={selectedVaultName ?? defaultVault ?? vaultsWithPlugin[0].name}
             onChange={setSelectedVaultName}
           >
-            <Form.Dropdown.Item value="" title="Select vault" disabled />
             {vaultsWithPlugin.map((vault) => (
               <Form.Dropdown.Item key={vault.key} value={vault.name} title={vault.name} icon="🧳" />
             ))}
@@ -374,9 +372,8 @@ export default function Capture() {
             id="matches"
             title="Matches"
             storeValue={false}
-            value={selectedMatchPath}
+            defaultValue=""
             onChange={(selectedPath) => {
-              setSelectedMatchPath(selectedPath);
               if (!selectedPath) return;
               const vaultObj: Vault | undefined = vaultsWithPlugin.find((v) => v.name === (selectedVaultName ?? ""));
               if (!vaultObj) return;
@@ -390,12 +387,11 @@ export default function Capture() {
               setStoragePath(dir);
             }}
           >
-            <Form.Dropdown.Item value="" title="Select a match…" disabled />
+            <Form.Dropdown.Item value="" title="Select a match…" />
             {matches.map((m) => {
               const vaultObj: Vault | undefined = vaultsWithPlugin.find((v) => v.name === (selectedVaultName ?? ""));
-              const subtitle = vaultObj ? m.path.split(vaultObj.path)[1]?.replace(/^\//, "") : undefined;
               return (
-                <Form.Dropdown.Item key={m.path} value={m.path} title={m.title} subtitle={subtitle} />
+                <Form.Dropdown.Item key={m.path} value={m.path} title={m.title} />
               );
             })}
           </Form.Dropdown>
