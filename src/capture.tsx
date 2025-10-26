@@ -45,6 +45,7 @@ export default function Capture() {
   const [storagePath, setStoragePath] = useState<string>("");
   const [fileName, setFileName] = useState<string>("");
   const [matches, setMatches] = useState<Note[]>([]);
+  const [selectedMatchPath, setSelectedMatchPath] = useState<string>("");
 
   useEffect(() => {
     // Initialize defaults from LocalStorage once
@@ -337,7 +338,13 @@ export default function Capture() {
         }
       >
         {ready && vaultsWithPlugin.length >= 1 && (
-          <Form.Dropdown id="vault" title="Vault" value={selectedVaultName} onChange={setSelectedVaultName}>
+          <Form.Dropdown
+            id="vault"
+            title="Vault"
+            value={selectedVaultName ?? ""}
+            onChange={setSelectedVaultName}
+          >
+            <Form.Dropdown.Item value="" title="Select vault" disabled />
             {vaultsWithPlugin.map((vault) => (
               <Form.Dropdown.Item key={vault.key} value={vault.name} title={vault.name} icon="🧳" />
             ))}
@@ -367,7 +374,10 @@ export default function Capture() {
             id="matches"
             title="Matches"
             storeValue={false}
+            value={selectedMatchPath}
             onChange={(selectedPath) => {
+              setSelectedMatchPath(selectedPath);
+              if (!selectedPath) return;
               const vaultObj: Vault | undefined = vaultsWithPlugin.find((v) => v.name === (selectedVaultName ?? ""));
               if (!vaultObj) return;
               const note = matches.find((m) => m.path === selectedPath);
@@ -380,6 +390,7 @@ export default function Capture() {
               setStoragePath(dir);
             }}
           >
+            <Form.Dropdown.Item value="" title="Select a match…" disabled />
             {matches.map((m) => {
               const vaultObj: Vault | undefined = vaultsWithPlugin.find((v) => v.name === (selectedVaultName ?? ""));
               const subtitle = vaultObj ? m.path.split(vaultObj.path)[1]?.replace(/^\//, "") : undefined;
