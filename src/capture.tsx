@@ -117,6 +117,7 @@ export default function Capture() {
     const SS = String(now.getSeconds()).padStart(2, "0");
 
     sections.push(`## ${dd}/${mm}/${yy}: ${HH}:${MM}:${SS}`);
+    sections.push(`#captured`);
 
     if (highlight && selectedText) {
       sections.push(`> [!quote] Quote\n${selectedText}`);
